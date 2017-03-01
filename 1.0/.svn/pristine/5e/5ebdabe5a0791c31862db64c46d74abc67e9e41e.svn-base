@@ -1,0 +1,336 @@
+/**
+* Copyright © Alcatel Lucent 2015
+* All rights reserved.
+*
+* Motive, Inc. Proprietary/Trade Secret ; Information
+* Not to be disclosed or used except in accordance with applicable agreements.
+*/
+
+var MobileClientNetworkScan = function() {
+	var initialized;
+	// =========================================================================
+	// Define the actual MobileClientNetworkScan instance constructor method.
+	// =========================================================================
+	return {
+
+		/**
+		 * Initializes the MobileClientNetworkScan
+		 * @param mobileClientNetworkScanTestModule
+		 * @param oMVP_OverlayTypeManager
+		 */
+		initialize: function(mobileClientNetworkScanTestModule, oMVP_OverlayTypeManager) {
+			try {
+				var mobileClientNetworkScanModel = oMVP_ModelManager.getModels().getModel(mobileClientNetworkScanTestModule);
+				// Execute TM
+				MobileClientNetworkScan.executeTestModule(mobileClientNetworkScanModel);
+				var mobileClientNetworkScanTestListener = new Array();
+				mobileClientNetworkScanTestListener.onStatusChange = MobileClientNetworkScan.onTestGroupStatusChange;
+
+				//Add the model status listener
+				mobileClientNetworkScanModel.addListener(mobileClientNetworkScanTestListener);
+				initialized = true;
+			}
+			catch(e) {
+				smc.Logger.error("MobileClientNetworkScan.initialize: " + e.message);
+			}
+			return true;
+		},
+
+		sizeIframe: function(section){
+			var height = $(window).height() - section.position().top;
+			console.log($('#northPane-networkMap').height()+' '+$('.ui-layout-center.ui-layout-pane.ui-layout-pane-center.open')[0].getBoundingClientRect().top);
+			//section.css('height',height+'px');
+		},
+
+		appendContent: function(someObj){
+            var bestChannel,currentChannel,
+                newObj = someObj.data_model_v2,
+                timestamps = newObj.timestamped_measurements,
+                cpe = newObj.cpe_recommendations.sessions,
+                room = newObj.room_recommendations.sessions,
+                signalStrength = newObj.signal_strengths_by_location.sessions,
+                wifiRecommendations = newObj.wifi_recommendations;
+
+                    $('.added-row').remove();
+                    //load Timestamps
+                    for(e = 0; e < timestamps.length; e++){
+                        $('<tr class="table-items added-row"><td class="session">'+timestamps[e].sessionId+'</td><td class="timestamp">'+timestamps[e].timestamp+'</td><td class="room">'+timestamps[e].location+'</td></tr>').appendTo('#mobileClient-listsofSession table');
+
+                        $('.sessions-dropdown select').append('<option class="added-row" sessionid="'+timestamps[e].sessionId+'" timestamp="'+timestamps[e].timestamp+'" roomid="'+timestamps[e].location+'">'+timestamps[e].sessionId+'</option>')
+                    }
+
+
+
+                    //load Content for Wifi and Room Recommendations
+                    function loadContentFor(session, timestamp, roomname){
+                            $('.mobileClient-rightContainer .signals,.mobileClient-rightContainer .channel').html(' ');
+                            var wifiTable = $('.mobileClient-rightContainer').clone()[0].outerHTML;
+                            //clear html
+                            $('.room-row').remove();
+                            $('.mobileClient-rightContainer').remove();
+
+
+                            //load Room Recommendations
+                            for(o = 0; o < room.length; o++){
+                                if(room[o].sessionId === session && room[o].timestamp === timestamp){
+                                    var location = room[o].locations;
+                                    for(b = 0; b < location.length; b++){
+                                        if(roomname === "" || location[b].name === roomname){
+                                            $('<tr class="room-row"><td>'+location[b].name+'</td><td>'+(location[b].extenderRequired ? "<span class='recommended'>Insufficient coverage. Extender required </span>" : "")+'<br>'+(location[b].bestSSIDs ? "<b>Best SSID(s): </b>"+location[b].bestSSIDs : "")+'</td></tr>').appendTo('#room-recommendation table');
+                                        }
+                                    }
+                                }
+                            }
+
+                        $('#cpe-recommendation .added-row').remove();
+
+                        //load CPE
+                        for(l = 0; l < cpe.length; l++){
+                            if(cpe[l].sessionId === session && cpe[l].timestamp === timestamp){
+                                var location = cpe[l].locations;
+                                    for(p = 0; p < location.length; p++){
+                                        if(roomname === "" || location[p].name === roomname){
+                                        var cpe_devices = location[p].cpe_devices
+                                        for(r = 0; r < cpe_devices.length; r++){
+                                            currentChannel = [cpe_devices[r].currentChannel2_4,cpe_devices[r].currentChannel5].filter(Boolean).join();
+                                            bestChannel = [cpe_devices[r].bestChannel2_4,cpe_devices[r].bestChannel5].filter(Boolean).join();
+                                            $('<tr class="added-row"><td>'+(cpe_devices[r].isGateway ? "Gateway" : "Extender")+'</td><td>'+bestChannel+'</td><td>'+cpe_devices[r].bestSSID+'</td></tr>').appendTo('#cpe-recommendation table');
+                                        }
+                                        }
+                                    }
+                            }
+                        }
+
+
+
+                        $('#mobileClient-scanResults .added-row').remove();
+
+
+                            //load by Signal Strength
+                        for(n = 0; n < signalStrength.length; n++){
+                            if(signalStrength[n].sessionId === session && signalStrength[n].timestamp === timestamp){
+                                //create rows
+
+                                var locate = signalStrength[n].locations;
+
+                                for(x = 0; x < locate.length; x++){
+
+
+
+                                if(!$('#scanResults table tr[data-room="'+locate[x].name+'"]').length){
+                                    $("#scanResults table").append("<tr class='added-row' data-room='"+locate[x].name+"'><td>"+locate[x].name+"</td></tr>");
+                                }
+
+                                if(roomname === "" || locate[x].name === roomname){
+
+                                for(t = 0; t < locate[x].cpe_devices.length; t++){
+                                    var signals = locate[x].cpe_devices[t],
+                                        className = (signals.managedDeviceId+'-'+signals.isGateway).replace('<HomeNetworkId>',''),
+                                        gateway = signals.isGateway ? 'Gateway' : 'Extender';
+
+                                        //create columns
+                                        if(!$('.signals-header th[data-gateway="'+className+'"]').length){
+                                            $('.signals-header').append('<th data-gateway="'+className+'">'+gateway+'('+signals.managedDeviceId+')</th>');
+                                            $('#scanResults table tr[data-room="'+locate[x].name+'"]').append('<td class="added-row"></td>');
+                                        }
+
+                                        //create table data cells
+                                        if(!$('tr[data-room="'+locate[x].name+'"] td[data-gateway="'+className+'"]').length){
+                                            $('#scanResults table tr[data-room="'+locate[x].name+'"]').append('<td data-gateway="'+className+'">&nbsp;</td>');
+                                        }
+
+                                        //enter values
+                                        $('tr[data-room="'+locate[x].name+'"] td[data-gateway="'+className+'"]').html([signals.rssi2_4+'dBm',signals.rssi5+'dBm'].join());
+
+                                }
+
+                                }
+
+
+
+                                }
+
+                            }
+                        }
+
+                            //clear html
+                            $('.wifi-graphs li').remove();
+
+                            //load by Wifi Recommendations
+                            for(c = 0; c < wifiRecommendations.length; c++){
+                                if(wifiRecommendations[c].sessionId === session && wifiRecommendations[c].timestamp === timestamp){
+                                    var locate = wifiRecommendations[c].locations;
+
+
+                                    for(y = 0; y < locate.length; y++){
+                                        var cpe_devices2 = locate[y].cpe_devices;
+
+                                        for(m = 0; m < cpe_devices2.length; m++){
+                                            if(roomname === "" || locate[y].name === roomname){
+                                                $('.wifi-graphs ul').append('<li class="slide'+m+'">'+cpe_devices2[m].managedDeviceId+'</li>');
+                                                $(wifiTable).insertAfter('.wifi-graphs');
+                                                var recommend = cpe_devices2[m].recommendations;
+                                                for(a = 0; a < recommend.length; a++){
+                                                    var pref = recommend[a].preferences;
+                                                    Object.getOwnPropertyNames(pref).forEach(function(val) {
+                                                        var row = (val < 36) ? '.row1' : '.row2';
+                                                        $('.mobileClient-rightContainer').first().attr('id','slide'+m).find('.signals'+row).append('<td class="'+pref[val]+'"></td>');
+                                                        $('.mobileClient-rightContainer').first().find('.channel'+row).append('<td>'+val+'</td>');
+                                                    });
+                                                }
+
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            $('#slide0').show();
+                            $('.slide0').addClass('active');
+                    }
+
+                    //functions
+                    loadContentFor("household",0,"");
+
+                    //listeners
+                    $('.table-items').click(function() {
+                        $(this).addClass('active').siblings('tr').removeClass('active');
+                        var session = $(this).find('.session').text(),
+                            room = $(this).find('.room').text(),
+                            timestamp = parseInt($(this).find('.timestamp').text()) || 0;
+                        loadContentFor(session,timestamp,room);
+                    });
+
+                    $('.sessions-dropdown select').change(function() {
+                        var the = $(this).find('option:selected');
+
+                        loadContentFor(the.attr('sessionid'),parseInt(the.attr('timestamp')),the.attr('roomid'));
+                    });
+
+
+
+                    $(document.body).on('click','.wifi-graphs li',function(){
+                        var className = $(this).attr('class');
+                        $(this).addClass('active').siblings('li').removeClass('active');
+                        $('.mobileClient-rightContainer').hide();
+                        $('#'+className).show();
+                    });
+
+                    $(document.body).on('click','.refresh-sessions',function() {
+                        loadContentFor("household",0,"");
+                        $('.table-items.active').removeClass('active');
+                    });
+
+
+        },
+
+
+		/**
+		 * executeTestModule
+		 * @param Test module to run
+		 * Executes the selected test module.
+		 */
+		executeTestModule: function(testModule) {
+			try {
+				if (testModule) {
+					diagnosticsLogger.debug(testModule.getID() + " executed.");
+					// Execute the selected test module.
+					testModule.execute();
+				}
+			}
+			catch (e) {
+				smc.Logger.error("MobileClientNetworkScan.js::MobileClientNetworkScan.executeTestModule() - " + e.message);
+			}
+		},
+
+		/**
+		 * Status Change listener
+		 *
+		 * @param modelID - the ID of the model that has changed status.
+		 * @param nOldStatus - a number representing the old status of the model.
+		 *
+		 * NONE = 10 STARTING = 20 IN_PROGRESS = 30 COMPLETE = 40 EXCEPTION = 50
+		 * USERINPUT = 60
+		 */
+
+		onTestGroupStatusChange: function(modelID, nOldStatus) {
+			try {
+				var model = oMVP_ModelManager.getModels().getModel(modelID);
+				var ot = oMVP_OverlayTypeManager.getOverlayTypeForModel(model);
+
+				if (modelID == "HC-GetHALNetworkScanData") {
+					if ( Model.Status.COMPLETE === model.getStatus() ) {
+						smc.Logger.debug("MobileClientNetworkScan.onTestGroupStatusChange()::" + modelID + " --> COMPLETE");
+
+						var result = MobileClientNetworkScan.getPropertyValue(model, "HALNetworkScanData");
+						smc.Logger.debug("MobileClientNetworkScan.onTestGroupStatusChange():result +++++++++++ " + result);
+
+						try {
+							$("#dataLoadingDiv").hide();
+							MobileClientNetworkScan.appendContent(JSON.parse(result));
+						}
+						catch(e) {
+							smc.Logger.error("MobileClientNetworkScan.parseJSON:MobileClientNetworkScan: " + e.message);
+							MobileClientNetworkScan.displayDataErrorMessage();
+						}
+				    }
+					// Test module did not complete
+					if ( Model.Status.EXCEPTION === model.getStatus() ) {
+						smc.Logger.debug("MobileClientNetworkScan.onTestGroupStatusChange()::" + modelID + " --> EXCEPTION");
+					}
+				}
+
+			}
+			catch(e) {
+				smc.Logger.error("MobileClientNetworkScan.onTestGroupStatusChange: " + e.message);
+			}
+			return true;
+		},
+
+		/**
+		 * Gets the property value from the model execution,
+		 * or null if property does not exist
+		 *
+		 * @param model The model to get the property value from.
+		 * @param propertyName Property name
+		 */
+		getPropertyValue: function(model, propertyName) {
+			try{
+				var resultXML = model.getResult();
+				var propertyValue = null;
+				if (resultXML == null) {
+					return null;
+				}
+				var xmlDom = getDomAdapter().parseXml(resultXML);
+				if (getDomAdapter().hasParseError(xmlDom)) {
+					alert("An error occurred parsing the xmlDom.");
+					return null;
+				}
+				var properties = xmlDom.selectSingleNode("//OverlayResults/Result[@name='properties']");
+				if (properties) {
+					var resultValue = properties.selectSingleNode("ResultValue");
+					var propertyAttribute = "PropertyResult[@name='"+propertyName+"']";
+					var propertyResult = resultValue.selectSingleNode(propertyAttribute);
+					if (propertyResult) {
+						propertyValue = propertyResult.selectSingleNode("value").childNodes[0].nodeValue;
+					}
+				}
+				return propertyValue;
+				}
+				catch(e) {
+					smc.Logger.error("MobileClientNetworkScan.getPropertyValue: " + e.message);
+					return "";
+				}
+			},
+
+		/**
+		 * displayDataErrorMessage
+		 * @param json object representing Data Error
+		 **/
+		displayDataErrorMessage: function() {
+			var errMsg = "Error occurred during the operation."
+			var errorMsgHtml = '<p style="text-align: center; line-height: 28px; font-size: 14px;">' + errMsg + '</p>';
+			$("#dataLoadingDiv").hide();
+			$("#errorMessage").html(errorMsgHtml);
+		}
+	};
+} ();

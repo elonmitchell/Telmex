@@ -1,0 +1,17 @@
+icon.reload = /images/icons/reload_24.png
+tabs.networkScan.reload = Reload network scan information
+cperecommendations = CPE Recommendations
+roomrecommendations = ROOM Recommendations
+cpe = CPE
+serialnumber = SerialNumber
+currentchannel = CurrentChannel
+bestchannel = BestChannel
+bestssid = Best SSID
+kitchen = Kitchen
+bedroom = Bedroom
+gameroom = Gameroom
+gateway = Gateway
+extender = Extender
+individaulsessions = List of Individual Sessions
+wifirecommendations = Wi-Fi recommendations
+networks = Networks

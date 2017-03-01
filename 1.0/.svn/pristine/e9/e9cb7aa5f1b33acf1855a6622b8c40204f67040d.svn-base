@@ -1,0 +1,152 @@
+/**
+* Copyright © Alcatel Lucent 2015
+* All rights reserved.
+*
+* Motive, Inc. Proprietary/Trade Secret ; Information
+* Not to be disclosed or used except in accordance with applicable agreements.
+*/
+
+var MobileClientNetworkScan = function() {
+	var initialized;
+	// =========================================================================
+	// Define the actual MobileClientNetworkScan instance constructor method.
+	// =========================================================================
+	return {
+				
+		/**
+		 * Initializes the MobileClientNetworkScan	
+		 * @param mobileClientNetworkScanTestModule 
+		 * @param oMVP_OverlayTypeManager	 
+		 */	
+		initialize: function(mobileClientNetworkScanTestModule, oMVP_OverlayTypeManager) {
+			try {							
+				var mobileClientNetworkScanModel = oMVP_ModelManager.getModels().getModel(mobileClientNetworkScanTestModule);
+				
+				// Execute TM
+				MobileClientNetworkScan.executeTestModule(mobileClientNetworkScanModel);				
+				var mobileClientNetworkScanTestListener = new Array();
+				mobileClientNetworkScanTestListener.onStatusChange = MobileClientNetworkScan.onTestGroupStatusChange;
+
+				//Add the model status listener 				
+				mobileClientNetworkScanModel.addListener(mobileClientNetworkScanTestListener);
+				initialized = true;
+			}
+			catch(e) {
+				smc.Logger.error("MobileClientNetworkScan.initialize: " + e.message);
+			}
+			return true;
+		},
+		
+		/**
+		 * executeTestModule
+		 * @param Test module to run
+		 * Executes the selected test module.
+		 */
+		executeTestModule: function(testModule) {
+			try {
+				if (testModule) {
+					diagnosticsLogger.debug(testModule.getID() + " executed.");
+					// Execute the selected test module.
+					testModule.execute();							
+				}
+			}
+			catch (e) {
+				smc.Logger.error("MobileClientNetworkScan.js::MobileClientNetworkScan.executeTestModule() - " + e.message);
+			}				
+		},
+			
+		/**
+		 * Status Change listener 
+		 * 
+		 * @param modelID - the ID of the model that has changed status.
+		 * @param nOldStatus - a number representing the old status of the model.
+		 * 
+		 * NONE = 10 STARTING = 20 IN_PROGRESS = 30 COMPLETE = 40 EXCEPTION = 50
+		 * USERINPUT = 60
+		 */
+		
+		onTestGroupStatusChange: function(modelID, nOldStatus) {			
+			try {				
+				var model = oMVP_ModelManager.getModels().getModel(modelID);					
+				var ot = oMVP_OverlayTypeManager.getOverlayTypeForModel(model);                
+                					
+				if (modelID == "HC-GetHALNetworkScanData") {					
+					if ( Model.Status.COMPLETE === model.getStatus() ) {						
+						smc.Logger.debug("MobileClientNetworkScan.onTestGroupStatusChange()::" + modelID + " --> COMPLETE");
+						
+						var result = MobileClientNetworkScan.getPropertyValue(model, "HALNetworkScanData");
+						smc.Logger.debug("MobileClientNetworkScan.onTestGroupStatusChange():result +++++++++++ " + result);		
+						
+						try {
+							$("#dataLoadingDiv").hide();
+							//commented to avoid showing the JSON data in template
+							//$("#mobileClientNetworkScanData").show();
+							//var dataHTML = '<p style="line-height: 28px; font-size: 14px;">' + result + '</p>';
+							//$("#mobileClientNetworkScanData").html(dataHTML);						    
+						}
+						catch(e) {
+							smc.Logger.error("MobileClientNetworkScan.parseJSON:MobileClientNetworkScan: " + e.message);
+							MobileClientNetworkScan.displayDataErrorMessage();							
+						}						
+				    }
+					// Test module did not complete
+					if ( Model.Status.EXCEPTION === model.getStatus() ) {
+						smc.Logger.debug("MobileClientNetworkScan.onTestGroupStatusChange()::" + modelID + " --> EXCEPTION");						
+					}
+				}	
+                
+			}
+			catch(e) {
+				smc.Logger.error("MobileClientNetworkScan.onTestGroupStatusChange: " + e.message);
+			}
+			return true;
+		},		
+		
+		/**
+		 * Gets the property value from the model execution,
+		 * or null if property does not exist
+		 * 
+		 * @param model The model to get the property value from.
+		 * @param propertyName Property name
+		 */
+		getPropertyValue: function(model, propertyName) {
+			try{
+				var resultXML = model.getResult();
+				var propertyValue = null;
+				if (resultXML == null) {
+					return null;
+				}
+				var xmlDom = getDomAdapter().parseXml(resultXML);
+				if (getDomAdapter().hasParseError(xmlDom)) {
+					alert("An error occurred parsing the xmlDom.");
+					return null;
+				}
+				var properties = xmlDom.selectSingleNode("//OverlayResults/Result[@name='properties']");
+				if (properties) {
+					var resultValue = properties.selectSingleNode("ResultValue");
+					var propertyAttribute = "PropertyResult[@name='"+propertyName+"']";
+					var propertyResult = resultValue.selectSingleNode(propertyAttribute);
+					if (propertyResult) {
+						propertyValue = propertyResult.selectSingleNode("value").childNodes[0].nodeValue;
+					}				
+				}
+				return propertyValue;
+				}
+				catch(e) {
+					smc.Logger.error("MobileClientNetworkScan.getPropertyValue: " + e.message);
+					return "";
+				}
+			},
+				
+		/**
+		 * displayDataErrorMessage
+		 * @param json object representing Data Error
+		 **/
+		displayDataErrorMessage: function() {
+			var errMsg = "Error occurred during the operation."
+			var errorMsgHtml = '<p style="text-align: center; line-height: 28px; font-size: 14px;">' + errMsg + '</p>';
+			$("#dataLoadingDiv").hide();
+			$("#errorMessage").html(errorMsgHtml);
+		}		
+	};
+} ();

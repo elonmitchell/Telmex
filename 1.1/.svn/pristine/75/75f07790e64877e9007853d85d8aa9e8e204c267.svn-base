@@ -1,0 +1,12 @@
+<!-- ====================================================== -->
+<!-- BEGIN - add a new tab                                  -->
+<!-- ====================================================== -->
+
+<div id="tabs-mobileClientNetworkScan" class="tabContentHeight" ui-tabs-hide" style="padding:2px; margin: 0px;">
+    $extresource.parse("hnmt/mobileClientNetworkScanTab.vm")
+</div>
+
+<!-- ====================================================== -->
+<!-- END - add a new tab                                    -->
+<!-- ====================================================== -->
+

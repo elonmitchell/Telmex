@@ -1,0 +1,419 @@
+/**
+* Copyright © Alcatel Lucent 2015
+* All rights reserved.
+*
+* Motive, Inc. Proprietary/Trade Secret ; Information
+* Not to be disclosed or used except in accordance with applicable agreements.
+*/
+
+var MobileClientNetworkScan = function() {
+	var initialized;
+	// =========================================================================
+	// Define the actual MobileClientNetworkScan instance constructor method.
+	// =========================================================================
+	return {
+
+		/**
+		 * Initializes the MobileClientNetworkScan
+		 * @param mobileClientNetworkScanTestModule
+		 * @param oMVP_OverlayTypeManager
+		 */
+		initialize: function(mobileClientNetworkScanTestModule, oMVP_OverlayTypeManager) {
+			try {
+				var mobileClientNetworkScanModel = oMVP_ModelManager.getModels().getModel(mobileClientNetworkScanTestModule);
+				// Execute TM
+				MobileClientNetworkScan.executeTestModule(mobileClientNetworkScanModel);
+				var mobileClientNetworkScanTestListener = new Array();
+				mobileClientNetworkScanTestListener.onStatusChange = MobileClientNetworkScan.onTestGroupStatusChange;
+
+				//Add the model status listener
+				mobileClientNetworkScanModel.addListener(mobileClientNetworkScanTestListener);
+				initialized = true;
+			}
+			catch(e) {
+				smc.Logger.error("MobileClientNetworkScan.initialize: " + e.message);
+			}
+			return true;
+		},
+
+		sizeIframe: function(section){
+			var height = $(window).height() - section.position().top;
+		},
+
+		appendContent: function(data){
+            var bestChannel,currentChannel,
+                data_model = data.data_model_v2,
+                config_channels = data_model.manually_configurable_channels,
+                timestamps = data_model.timestamped_measurements,
+                cpe = data_model.cpe_recommendations.sessions,
+                room = data_model.room_recommendations.sessions,
+                signal_sessions = data_model.signal_strengths_by_location.sessions,
+                wifi_sessions = data_model.wifi_recommendations;
+
+                //prepare content
+                $('.mobileClient-rightContainer').removeClass('active');
+                $('.wifi-recommendations .signals td,.wifi-recommendations .channel td').remove();
+                $('.ssids,.frequency').html('');
+                var wifiTemplate = $('.mobileClient-rightContainer')[0].outerHTML;
+
+                    $('.added-row,.sessions-dropdown select option').remove();
+                    //load Timestamps
+
+                    for(e = 0; e < timestamps.length; e++){
+                        $('<tr class="table-items added-row"><td class="session">'+timestamps[e].sessionId+'</td><td class="timestamp">'+timestamps[e].timestamp+'</td><td class="room">'+timestamps[e].location+'</td></tr>').appendTo('#mobileClient-listsofSession table');
+                        $('.sessions-dropdown select').append('<option class="added-row" sessionid="'+timestamps[e].sessionId+'" timestamp="'+timestamps[e].timestamp+'" roomid="'+timestamps[e].location+'">'+new Date(timestamps[e].timestamp).toLocaleString()+' ('+timestamps[e].location+')</option>')
+                    }
+
+                    $('.sessions-dropdown option').sort(function(a,b){
+                        return $(a).attr("timestamp") - $(b).attr("timestamp");
+                    }).appendTo('.sessions-dropdown select');
+
+                    var mostRecent = $('.sessions-dropdown option:eq(0)');
+
+                    $('<option sessionid="household" timestamp="0" roomid="">All Data</option>').insertBefore('.sessions-dropdown select option:eq(0)');
+
+
+                    var getSSIDs = function(ssids){
+                            var ids = "";
+                            $.each(ssids,function(index, val){
+                                ids += (!index) ? val : ', ' + val;
+                            });
+                            return ids;
+                    };
+
+                    var determineColor = function(value, ssid){
+                        var signal;
+                        if(value >= data_model.signal_strength_level_thresholds.medium){
+                            signal = "strong";
+                        }
+                        else if((value > data_model.signal_strength_level_thresholds.low) && (value < data_model.signal_strength_level_thresholds.medium)){
+                            signal = "medium";
+                        }
+                        else if(value <= data_model.signal_strength_level_thresholds.low){
+                            signal = "weak";
+                        }
+                        var ssids = ssid ? "("+ssid+")" : "";
+                        return value ? '<span class="'+signal+'">'+value+'dBm '+ssids+'</span>' : '';
+                    };
+
+                    var removeContent = {
+                            wifi: function(){
+                                $('.wifi-graphs li').remove();
+                                $('.ssids,.frequency').html('');
+                                $('.mobileClient-rightContainer').remove();
+                            },
+                            signals: function(){
+                                $('#mobileClient-scanResults .added-row').remove();
+                            }
+                    };
+
+                    var sessionsMatch = function(session,$this){
+                            var ifMatches = false;
+                            //session must equal session id or nothing AND timestamp must equal time or nothing
+                            if(($this.session === session.sessionId || $this.session === "") && ($this.time === session.timestamp || $this.time === "")){
+                                ifMatches = true;
+                            }
+                            return ifMatches;
+                    };
+
+                    var locationsMatch = function(location,$this){
+                            var ifMatches = false;
+
+                            if($this.room === location.name || $this.room === ""){
+                                ifMatches =  true;
+                            }
+                            return ifMatches;
+                    };
+
+                    var routerType = function(isGateway){
+                        return (isGateway) ? 'Gateway' : 'Extender';
+                    };
+
+                    var createTableCell = function(){
+                        //for each row
+                        $('#scanResults .added-row').each(function(row_index){
+                            var row = $(this);
+                            //go through each header
+                            $('.signals-header th').each(function(column_index){
+                                var tableData = row.find('td').eq(column_index),
+                                className = $(this).attr('data-gateway'),
+                                columnClass = row.find('td').eq(column_index).attr('data-gateway');
+                                if(tableData.length === 0){
+                                    $('<td data-gateway="'+className+'">&nbsp;</td>').appendTo(row);
+                                }
+                                else if ((columnClass !== className) && column_index){
+                                    $('<td data-gateway="'+className+'">&nbsp;</td>').insertBefore(tableData);
+                                }
+                            });
+                        });
+                    };
+
+                    var markPref = function(pref){
+                            var signal,
+                            channel = pref;
+                            $.each(config_channels,function(index,cur_channel){
+                                signal = parseInt(pref);
+                                if(cur_channel === signal){
+                                    channel = "*" + pref;
+                                    return false;
+                                }
+                            });
+                            return channel;
+                    }
+
+                    var loadWifi = function(val){
+                            var wifi;
+                            //remove content
+                            removeContent.wifi();
+
+                            //deep search
+                            $.each(wifi_sessions,function(session_index,session){
+                                if(sessionsMatch(session,val)){
+                                    $.each(session.locations,function(location_index,location){
+                                        if(locationsMatch(location,val)){
+                                            $.each(location.cpe_devices,function(cpe_index,cpe_devices){
+                                                //create tabs
+                                                $('.wifi-graphs ul').append('<li class="slide'+cpe_index+'">'+routerType(cpe_devices.isGateway)+' '+cpe_devices.managedDeviceId+'</li>');
+                                                //insert template
+                                                $(wifiTemplate).insertAfter('.wifi-graphs');
+                                                //see all recommendations
+                                                $.each(cpe_devices.recommendations,function(recommendations_index,wifi_recommendations){
+                                                    wifi = '.mobileClient-rightContainer',
+                                                    channel = parseInt(Object.keys(wifi_recommendations.preferences)[0]) < 36 ? '.channel-strength-one' : '.channel-strength-two';
+                                                    $(wifi+' '+channel).first().find('.frequency').html('Frequency band: '+wifi_recommendations.frequency);
+                                                    $(wifi+' '+channel).first().find('.ssids').html('SSID(s): '+getSSIDs(wifi_recommendations.ssids));
+                                                    $(wifi).first().attr('id','slide'+cpe_index);
+                                                    Object.getOwnPropertyNames(wifi_recommendations.preferences).forEach(function(val) {
+                                                        $(wifi).first().find(channel+' .signals').append('<td class="'+wifi_recommendations.preferences[val]+'"></td>');
+                                                        $(wifi).first().find(channel+' .channel').append('<td>'+markPref(val)+'</td>');
+                                                  });
+
+                                                });
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                            //start graphcs
+                            $('.slide0,'+wifi+':last').addClass('active');
+                    };
+
+                    var loadSignals = function(val){
+                        //remove content
+                        removeContent.signals();
+                        //load by Signal Strength
+                        $.each(signal_sessions,function(session_index,session){
+                            if(sessionsMatch(session,val)){
+                                $.each(session.locations,function(location_index,location){
+                                    if(locationsMatch(location,val)){
+                                        // add rooms
+                                        if(!$('#scanResults table tr[data-room="'+location.name+'"]').length){
+                                            $("#scanResults table").append("<tr class='added-row' data-room='"+location.name+"'><td>"+location.name+"</td></tr>");
+                                            createTableCell();
+                                        }
+                                        $.each(location.cpe_devices,function(cpe_index,cpe_device){
+                                            var className = (cpe_device.managedDeviceId+'-'+routerType(cpe_device.isGateway)).replace('<HomeNetworkId>','');
+                                            //create columns
+                                            if(!$('.signals-header th[data-gateway="'+className+'"]').length){
+                                                $('.signals-header').append('<th data-gateway="'+className+'">'+routerType(cpe_device.isGateway)+' '+cpe_device.managedDeviceId+'</th>');
+                                                //create table data cells
+                                                createTableCell();
+                                            }
+                                            //enter values
+                                            $('tr[data-room="'+location.name+'"] td[data-gateway="'+className+'"]').html([determineColor(cpe_device.rssi2_4, getSSIDs(cpe_device.ssids2_4)),determineColor(cpe_device.rssi5,getSSIDs(cpe_device.ssids5))].filter(function(v){return v!==''}).join());
+                                        });
+                                    }
+                                });
+                            }
+                        });
+
+                    };
+
+
+                    //load Content for Wifi and Room Recommendations
+                    function loadContentFor(session, timestamp, roomname){
+                            $('.mobileClient-rightContainer .signals,.mobileClient-rightContainer .channel').html(' ');
+                            //clear html
+                            $('.room-row').remove();
+
+                            val = {
+                                session: session,
+                                time: timestamp,
+                                room: roomname
+                            };
+
+                            //Functions
+                            loadWifi(val);
+                            loadSignals(val);
+
+                            //load Room Recommendations
+                            for(o = 0; o < room.length; o++){
+                                if(room[o].sessionId === session && room[o].timestamp === timestamp){
+                                    var location = room[o].locations;
+                                    for(b = 0; b < location.length; b++){
+                                        if(roomname === "" || location[b].name === roomname){
+                                            for(z = 0; z < location[b].bestSSIDsEx.length; z++){
+                                                $('<tr class="room-row"><td>'+location[b].name+'</td><td>'+(location[b].extenderRequired ? "<span class='recommended'>Insufficient coverage. Extender required </span><br>" : "")+(location[b].bestSSIDsEx[z].ssid ? "<b>Best SSID(s): </b>"+location[b].bestSSIDsEx[z].ssid + " (signal strength: <span class='"+location[b].bestSSIDsEx[z].signalQuality+"'>" + location[b].bestSSIDsEx[z].signalQuality + "</span>)" : "")+'</td></tr>').appendTo('#room-recommendation table');
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                        $('#cpe-recommendation .added-row').remove();
+
+                        //load CPE
+                        for(l = 0; l < cpe.length; l++){
+                            if(cpe[l].sessionId === session && cpe[l].timestamp === timestamp){
+                                var location = cpe[l].locations;
+                                    for(p = 0; p < location.length; p++){
+                                        if(roomname === "" || location[p].name === roomname){
+                                        var cpe_devices = location[p].cpe_devices;
+                                        for(r = 0; r < cpe_devices.length; r++){
+                                            currentChannel = [cpe_devices[r].currentChannel2_4,cpe_devices[r].currentChannel5].filter(Boolean).join();
+                                            bestChannelRec = (cpe_devices[r].recommendedBandGHz === "5") ? "bestChannel5" : "bestChannel2_4";
+                                            bestChannel = cpe_devices[r][bestChannelRec];
+                                            $('<tr class="added-row"><td>'+(cpe_devices[r].isGateway ? "Gateway " : "Extender ")+cpe_devices[r].managedDeviceId+'</td><td>'+bestChannel+'</td><td>'+cpe_devices[r].bestSSID+'</td></tr>').appendTo('#cpe-recommendation table');
+                                        }
+                                        }
+                                    }
+                            }
+                        }
+                       motive.csc.mobileClientNetworkScan.showProgress('#refresh-scan','off');
+                    }
+
+                    //select the most recent timestamp
+                    mostRecent.prop('selected', true);
+                    loadContentFor(mostRecent.attr("sessionid"),parseInt(mostRecent.attr("timestamp")),mostRecent.attr("roomid"));
+
+                    $('.sessions-dropdown select').change(function() {
+                        var the = $(this).find('option:selected');
+                        loadContentFor(the.attr('sessionid'),parseInt(the.attr('timestamp')),the.attr('roomid'));
+                    });
+
+                    $('.wifi-graphs li').live('click',function(){
+                        var wifiGraph = $(this).attr('class');
+                        $('.mobileClient-rightContainer,.wifi-graphs li').removeClass('active');
+                        $('#'+wifiGraph).addClass('active');
+                        $(this).addClass('active');
+                    });
+
+
+        },
+
+
+		/**
+		 * executeTestModule
+		 * @param Test module to run
+		 * Executes the selected test module.
+		 */
+		executeTestModule: function(testModule) {
+			try {
+				if (testModule) {
+					diagnosticsLogger.debug(testModule.getID() + " executed.");
+					// Execute the selected test module.
+					testModule.execute();
+				}
+			}
+			catch (e) {
+				smc.Logger.error("MobileClientNetworkScan.js::MobileClientNetworkScan.executeTestModule() - " + e.message);
+			}
+		},
+
+		/**
+		 * Status Change listener
+		 *
+		 * @param modelID - the ID of the model that has changed status.
+		 * @param nOldStatus - a number representing the old status of the model.
+		 *
+		 * NONE = 10 STARTING = 20 IN_PROGRESS = 30 COMPLETE = 40 EXCEPTION = 50
+		 * USERINPUT = 60
+		 */
+
+		onTestGroupStatusChange: function(modelID, nOldStatus) {
+			try {
+				var model = oMVP_ModelManager.getModels().getModel(modelID);
+				var ot = oMVP_OverlayTypeManager.getOverlayTypeForModel(model);
+
+				if (modelID == "HC-GetHALNetworkScanData") {
+					if ( Model.Status.COMPLETE === model.getStatus() ) {
+						smc.Logger.debug("MobileClientNetworkScan.onTestGroupStatusChange()::" + modelID + " --> COMPLETE");
+
+						var result = MobileClientNetworkScan.getPropertyValue(model, "HALNetworkScanData");
+
+                        console.log(result);
+
+                        var halData = (JSON) ? JSON.parse(result) : $.parseJSON(result);
+
+						smc.Logger.debug("MobileClientNetworkScan.onTestGroupStatusChange():result +++++++++++ " + result);
+                        MobileClientNetworkScan.appendContent(halData);
+
+						try {
+							$("#dataLoadingDiv").hide();
+						}
+						catch(e) {
+							smc.Logger.error("MobileClientNetworkScan.parseJSON:MobileClientNetworkScan: " + e.message);
+							MobileClientNetworkScan.displayDataErrorMessage();
+						}
+				    }
+					// Test module did not complete
+					if ( Model.Status.EXCEPTION === model.getStatus() ) {
+						smc.Logger.debug("MobileClientNetworkScan.onTestGroupStatusChange()::" + modelID + " --> EXCEPTION");
+					}
+				}
+
+			}
+			catch(e) {
+				smc.Logger.error("MobileClientNetworkScan.onTestGroupStatusChange: " + e.message);
+			}
+			return true;
+		},
+
+		/**
+		 * Gets the property value from the model execution,
+		 * or null if property does not exist
+		 *
+		 * @param model The model to get the property value from.
+		 * @param propertyName Property name
+		 */
+		getPropertyValue: function(model, propertyName) {
+			try{
+				var resultXML = model.getResult();
+				var propertyValue = null;
+				if (resultXML == null) {
+					return null;
+				}
+				var xmlDom = getDomAdapter().parseXml(resultXML);
+				if (getDomAdapter().hasParseError(xmlDom)) {
+					alert("An error occurred parsing the xmlDom.");
+					return null;
+				}
+				var properties = xmlDom.selectSingleNode("//OverlayResults/Result[@name='properties']");
+				if (properties) {
+					var resultValue = properties.selectSingleNode("ResultValue");
+					var propertyAttribute = "PropertyResult[@name='"+propertyName+"']";
+					var propertyResult = resultValue.selectSingleNode(propertyAttribute);
+					if (propertyResult) {
+						propertyValue = propertyResult.selectSingleNode("value").childNodes[0].nodeValue;
+					}
+				}
+				return propertyValue;
+				}
+				catch(e) {
+					smc.Logger.error("MobileClientNetworkScan.getPropertyValue: " + e.message);
+					return "";
+				}
+			},
+
+		/**
+		 * displayDataErrorMessage
+		 * @param json object representing Data Error
+		 **/
+		displayDataErrorMessage: function() {
+			var errMsg = "Error occurred during the operation.";
+			var errorMsgHtml = '<p style="text-align: center; line-height: 28px; font-size: 14px;">' + errMsg + '</p>';
+			$("#dataLoadingDiv").hide();
+			$("#errorMessage").html(errorMsgHtml);
+		}
+	};
+} ();

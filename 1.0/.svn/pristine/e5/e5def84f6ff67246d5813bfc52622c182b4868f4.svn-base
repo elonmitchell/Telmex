@@ -1,0 +1,420 @@
+<style>
+body {color:#000;font-size:14px;font-family:"Segoe UI", Tahoma, Verdana, Arial, Helvetica, sans-serif;margin:0;padding:0;}
+h5{color:#555;margin:0;font-size:15px;font-weight:600;}
+a{color:#ccc;}
+.mobileClientNetworkScanContainer{xborder:1px solid #999;display:inline-block;margin:10px 0.4%;width:99%;}
+.mobileClient-leftContainer{xborder-right:1px solid #999;float:left;width:50%}
+.mobileClient-rightContainer {
+    float: left;
+    width: 49%;
+    display: none;
+    border: solid 1px #ccc;
+    margin: 28px 0 0 0;
+}
+table{margin:0px 0px 15px 0px;font-size:13px;}
+table,th,td{border:1px solid #e7e7e7;border-collapse:collapse;}
+tr:nth-child(odd){background-color:#f5f2f2;}
+tr:nth-child(even){background-color:#fff;}
+tr.table-items:hover,tr.table-items.active {background: #c5dbec;}
+.table-items{cursor: pointer;}
+#mobileClient-networks {
+	display: none;
+}
+.wifi-graphs {
+    float: left;
+    width: 50%;
+    position: absolute;
+    right: 0px;
+    z-index: 1;
+}
+.wifi-graphs ul {
+    margin: 0;
+    padding: 0;
+}
+.wifi-graphs li {
+    list-style: none;
+    border: solid 1px #ccc;
+    border-bottom: none;
+    float: left;
+    padding: 5px 10px;
+    margin: 0 10px 0 0;
+}
+.wifi-graphs li.active {
+    border-bottom: solid 1px #fff;
+}
+#mobileClient-listsofSession {
+    border: 1px solid #e7e7e7;
+}
+.table-holder {
+    margin: 15px 15px 0 15px;
+}
+.refresh-sessions {
+    float: right;
+    margin: 7px 13px 7px 0;
+}
+.recommended {
+	color: red;
+}
+th,td{padding:5px 10px;}
+th{
+background: #fefefe; /* Old browsers */
+background: -moz-linear-gradient(top, #fefefe 0%, #fefefe 20%, #f7f7f7 71%, #f7f7f7 97%, #e7e7e7 100%); /* FF3.6-15 */
+background: -webkit-linear-gradient(top, #fefefe 0%,#fefefe 20%,#f7f7f7 71%,#f7f7f7 97%,#e7e7e7 100%); /* Chrome10-25,Safari5.1-6 */
+background: linear-gradient(to bottom, #fefefe 0%,#fefefe 20%,#f7f7f7 71%,#f7f7f7 97%,#e7e7e7 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fefefe', endColorstr='#e7e7e7',GradientType=0 ); /* IE6-9 */
+color:#1d5987;font-weight:bold;}
+.commonValue{xborder-bottom:1px solid #999;padding:15px 15px 0px 15px;}
+.alignCenter{text-align:center;}
+.recommendation, .scanresults{border:1px solid #e7e7e7;margin:0px 0px 15px;}
+.recommendation table, .scanresults table{margin:15px;}
+.recommendation p, .scanresults p{ padding:0px 10px;margin:5px 0;}
+.recommendation fieldset{padding:.35em .625em .75em;margin:15px;border:1px solid silver;padding:15px;background-color:#f8f8f8;}
+.recommendation legend{border:none;font-size:14px;color:#1d5987;width:auto;font-weight:bold;margin-bottom:0;}
+.graphContainer{padding:7px 15px;}
+.headerTitle{
+background: #8db9db; /* Old browsers */
+background: -moz-linear-gradient(top, #8db9db 0%, #8db9db 18%, #85b5d9 52%, #72a9d3 53%, #6ba5d0 72%, #68a3cf 74%, #64a1ce 90%, #609ecd 99%, #5c9ccc 100%); /* FF3.6-15 */
+background: -webkit-linear-gradient(top, #8db9db 0%,#8db9db 18%,#85b5d9 52%,#72a9d3 53%,#6ba5d0 72%,#68a3cf 74%,#64a1ce 90%,#609ecd 99%,#5c9ccc 100%); /* Chrome10-25,Safari5.1-6 */
+background: linear-gradient(to bottom, #8db9db 0%,#8db9db 18%,#85b5d9 52%,#72a9d3 53%,#6ba5d0 72%,#68a3cf 74%,#64a1ce 90%,#609ecd 99%,#5c9ccc 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#8db9db', endColorstr='#5c9ccc',GradientType=0 ); /* IE6-9 */
+color:#fff;padding:7px 15px;line-height:18px;}
+.networkContainer{background-color:#eee;padding:15px;width:96%;display:inline-block;}
+.networkContainer ul{background-color:#fff;border:1px solid #ddd;margin:15px 0px 0px 0px;}
+.nav li{margin-left:0px;}
+.networkContainer .ui-state-active a,.networkContainer .ui-state-active a:focus,.networkContainer .ui-state-active a:hover,.nav-tabs>li.active>a,.nav-tabs>li.active>a:focus,.nav-tabs>li.active>a:hover,.networkContainer .ui-state-active,.networkContainer .ui-widget-content .ui-state-active{border-top:2px solid #5c9ccc;border-right:1px solid #ddd;border-left:1px solid #ddd;color:#333;font-weight:bold;}
+.nav-tabs>li>a:focus,.nav-tabs>li>a:hover,.networkContainer .ui-state-default,.networkContainer .ui-widget-content .ui-state-default{background:transparent;border:1px solid transparent;color:#333}
+.networkContainer .ui-state-default a,.networkContainer .ui-state-default a:link,.networkContainer .ui-state-default a:visited{color:#ccc;font-weight:normal}
+.networkContainer .ui-tabs .ui-tabs-nav li.ui-tabs-selected a{color:#333;font-weight:600;}
+.nav-tabs>li>a{border-radius:0px;padding:6px 15px !important;}
+.tab-content{border:1px solid #ccc;padding:10px;width:96%;display:inline-block;}
+.tab-content table{margin:0;}
+.tab-content table th{font-weight:700;color:#111;}
+.tab-content table td{color:#666;}
+.room-recommendationDesc{color:#1d5987;font-weight:bold;display:inline-block;width:100px;}
+.networkContainer .ui-widget-content{border:none;background:none;}
+.networkContainer .ui-corner-all{border-radius:0;}
+.networkContainer .ui-widget-header,.networkContainer .ui-state-default,.networkContainer .ui-widget-content .ui-state-default,.networkContainer .ui-state-active,.networkContainer .ui-widget-content .ui-state-active{background:#fff;}
+.networkContainer .ui-tabs .ui-tabs-panel,.networkContainer .ui-tabs .ui-tabs-nav{padding:0;}
+.networkContainer .ui-tabs-titlebar-title{margin-right:0;}
+.deviceInfo{padding:15px 25px;background:#fff;}
+.deviceInfo h3{border-bottom:1px solid #000;margin:0;padding:0 0 3px;font-size:14px;}
+p{margin:5px 0 0;}
+.wifi-recommendations {
+    font-size: 12px;
+    margin: 0 10px;
+}
+.wifi-recommendations.channel-strength-one {
+	border-bottom: solid 20px #efefef;
+}
+.wifi-recommendations.channel-strength-one table,
+.wifi-recommendations.channel-strength-two table {
+	table-layout: fixed;
+	width: 100%;
+	font-size: inherit;
+	border: none;
+}
+.wifi-recommendations .wifi-info {
+	text-align: center;
+    margin: 0 0 20px 0;
+	padding: 0 0 20px 0;
+	border-bottom: solid 2px #efefef;
+}
+.wifi-recommendations .wifi-info span {
+	display: block;
+}
+.signals-header th {
+    font-size: 11px;
+    padding: 5px;
+}
+.wifi-recommendations .signals td {
+    height: 30px;
+    border: 1px solid #fff;
+}
+.wifi-recommendations .channel td {
+    text-align: center;
+    padding: 0;
+    border: none;
+}
+.wifi-recommendations .weak {
+	background: red;
+}
+.wifi-recommendations .medium {
+	background: yellow;
+}
+.wifi-recommendations .strong {
+	background: green;
+}
+.wifi-key {
+    text-align: center;
+    margin: 10px 0;
+}
+.wifi-key ul {
+    display: inline-block;
+    margin: 0 auto;
+}
+.wifi-key li {
+    list-style: none;
+    float: left;
+	margin: 0 0 0 15px;
+}
+.wifi-key li div {
+    width: 20px;
+    height: 14px;
+    float: left;
+    margin: 0 5px 0 0;
+}
+.serial-number {
+    display: none;
+}
+.sessions-dropdown {
+	float: right;
+}
+</style>
+<div class="mobileClientNetworkScanLayout" style="margin-top: 2px; height:100%;">
+<div class="sessions-dropdown">
+    	Session ID:
+    	<select>
+        	<option sessionid="household" timestamp="0" roomid="">All Data</option>
+  		</select>
+    </div>
+	<div id="reloadScan">
+		<span class="workspaceheader-button" style="margin-top: 5px;">
+		   <ul class="nav">
+			   <li id="refresh-scan" class="ui-state-default">
+				   <a onclick="motive.csc.mobileClientNetworkScan.refreshMobileClientNetworkScanTab()">
+					   <img id="scanRefresh"
+							   src="${link.getContextURL()}${msg.get("icon.reload")}"
+							   border="0px;"
+							   align="absmiddle"
+							   style="padding-top: 0px;"
+							   title="${msg.get("tabs.subscriber.reload")}"
+					   />
+				   </a>
+			   </li>
+		   </ul>
+		</span>
+	</div>
+	<!--<div id="mobileClientNetworkScan" class="ui-widget-content" style="position:relative; height:100%; overflow-x: hidden; overflow-y: auto; margin-left: 2px;">
+	</div>-->
+	<!--<div id="mobileClientNetworkScanData"></div>
+	<div id="dataLoadingDiv" align="center"><img src="${link.contextPath}${msg.get("icon.running")}"/></div>
+	<div id="errorMessage" align="center"></div>-->
+
+	<!--CSC UI code starts-->
+	<div id="mobileClientNetworkScanContainer" class="mobileClientNetworkScanContainer ui-widget-content ui-corner-all ui-layout-pane" style="position: absolute; overflow-x: hidden;overflow-y: auto; top: 68px; bottom: 10px; min-height: 150px;">
+		<div id="mobileClient-leftContainer" class="mobileClient-leftContainer">
+			<!-- ********************************** HOUSEHOLD RECOMMENDATIONS ************************************* -->
+			<div id="mobileClient-recommendations" class="commonValue">
+				<div class="recommendation" id="cpe-recommendation">
+					<div class="headerTitle">${msg.get("cperecommendations")}</div>
+					<table border="0" width="95%">
+						<tr><th>${msg.get("type")}</th><th class="serial-number">${msg.get("serialnumber")}</th><th>${msg.get("bestchannel")}</th><th>${msg.get("bestSSID")}</th></tr>
+					</table>
+				</div>
+				<div class="recommendation" id="room-recommendation">
+					<div class="headerTitle">${msg.get("roomrecommendations")}</div>
+                    <table border="0" width="95%">
+                        <tr><th>${msg.get("location")}</th><th>${msg.get("recommendations")}</th></tr>
+                    </table>
+				</div>
+			</div>
+			<!-- ********************************** SCAN RESULTS ************************************* -->
+			<div id="mobileClient-scanResults" class="commonValue">
+				<div class="scanresults" id="scanResults">
+					<div class="headerTitle">${msg.get("signalStrength")}</div>
+					<table border="0" width="95%">
+						<tr class="signals-header"><th>${msg.get("location")}</th></tr>
+					</table>
+				</div>
+			</div>
+			<!-- ********************************** ROOM LEVEL RECOMMENDATIONS ************************************* -->
+			<div id="mobileClient-listsofSession">
+				<div class="headerTitle">${msg.get("sessions")}</div>
+				<a href="javascript:void(0)">
+					   <img class="refresh-sessions" src="http://rhel55.devlab.motive.com:8001/csc/images/icons/reload_24.png" border="0px;" align="absmiddle" style="padding-top: 0px;" title="Reload Session Information">
+				</a>
+				<div class="table-holder">
+					<table border="0" width="100%">
+						<tr><th>${msg.get("sessionID")}</th><th>${msg.get("timestamp")}</th><th>${msg.get("roomid")}</th></tr>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div class="wifi-graphs">
+        	<ul>
+
+            </ul>
+        </div>
+		<div id="mobileClient-rightContainer" class="mobileClient-rightContainer">
+			<!-- ********************************** CHANNEL BAR GRAPH RESULTS ************************************* -->
+			<div id="mobileClient-graphResults" class="commonValue alignCenter">
+				<h5>${msg.get("wifirecommendations")}</h5>
+				<div class="graphContainer">
+				</div>
+			</div>
+
+
+			<div class="wifi-recommendations channel-strength-one">
+				<div class="wifi-info">
+					<span>Frequency band: 2.4GHz</span>
+				</div>
+				<table>
+				  <tr class="signals row1">
+				  </tr>
+				  <tr class="channel row1">
+				  </tr>
+				</table>
+				<div class="wifi-key">
+					<ul>
+				    	<li><div class="strong"></div>Strong preference</li>
+				        <li><div class="medium"></div>Medium preference</li>
+				        <li><div class="weak"></div>Weak preference</li>
+				    </ul>
+				</div>
+				</div>
+
+				<div class="wifi-recommendations channel-strength-two">
+				<div class="wifi-info">
+					<span>Frequency band: 5GHz</span>
+				</div>
+				<table>
+				  <tr class="signals row2">
+				  </tr>
+				  <tr class="channel row2">
+				  </tr>
+				</table>
+				<div class="wifi-key">
+					<ul>
+				    	<li><div class="strong"></div>Strong preference</li>
+				        <li><div class="medium"></div>Medium preference</li>
+				        <li><div class="weak"></div>Weak preference</li>
+				    </ul>
+				</div>
+				</div>
+
+
+			<!-- ********************************** TYPE OF DETECTED NETWORKS ************************************* -->
+			<div id="mobileClient-networks" style="padding:15px;">
+				<div class="networkContainer">
+					<h5>${msg.get("networks")}</h5>
+					<div id="tabs">
+						<ul>
+							<li><a href="#tabs-1">${msg.get("24ghz")}</a></li>
+							<li><a href="#tabs-2">${msg.get("5ghz")}</a></li>
+						</ul>
+						<div class="tab-content">
+							<div id="tabs-1">
+								<table border="0" width="100%">
+									<tr><th>${msg.get("channel")}</th><th>${msg.get("ssid")}</th><th>${msg.get("bssid")}</th><th>${msg.get("signalstrength")}</th></tr>
+									<tr><td></td><td></td><td></td><td></td></tr>
+									<tr><td></td><td></td><td></td><td></td></tr>
+									<tr><td></td><td></td><td></td><td></td></tr>
+								</table>
+							</div>
+							<div id="tabs-2">
+								<table border="0" width="100%">
+									<tr><th>${msg.get("channel")}</th><th>${msg.get("ssid")}</th><th>${msg.get("bssid")}</th><th>${msg.get("signalstrength")}</th></tr>
+									<tr><td></td><td></td><td></td><td></td></tr>
+									<tr><td></td><td></td><td></td><td></td></tr>
+									<tr><td></td><td></td><td></td><td></td></tr>
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!--CSC UIcode ends-->
+
+</div>
+
+<script type="text/javascript">
+    $("#tabs").tabs();
+</script>
+
+<script src="$link.contextPath/getResource.do?resourceName=hnmt/js/MobileClientNetworkScan.js"></script>
+
+<script>
+	motive.csc.mobileClientNetworkScan = {}; // set up troubleshooting namespace
+
+	motive.csc.mobileClientNetworkScan.resize = function() {
+		$('#tabs-mobileClientNetworkScan').css('width', '99.5%');
+	};
+
+    motive.csc.mobileClientNetworkScan.checkMobileClientNetworkScanExists = function() {
+        $("#mainTabs ul li a span").each(function () {
+            if ($(this).text() === "Wi-Fi Analyzer") {
+                mobileClientNetworkScanExists = true;
+            }
+        });
+    };
+
+	// ============================================================================================
+	// Start the Mobile Client Network Scan Tab
+	// ============================================================================================
+
+	// Instantiate the Mobile Client Network Scan object.
+	var mobileClientNetworkScanTestModule = "HC-GetHALNetworkScanData";
+    var tabId = "mobileClientNetworkScan";
+    var tabLabel = "Wi-Fi Analyzer";
+    var mobileClientNetworkScanExists = false;
+    var mobileClientNetworkScanTabIndex = $('#mainTabs a[href$="#tabs-' + tabId + '"]').parent().index();
+
+	motive.csc.mobileClientNetworkScan.loadMobileClientNetworkScanPage = function() {
+		MobileClientNetworkScan.initialize(mobileClientNetworkScanTestModule, oMVP_OverlayTypeManager);
+		$("#dataLoadingDiv").show();
+	};
+	// ============================================================================================
+	// Add Mobile Client Network Scan Tab
+	// ============================================================================================
+
+	motive.csc.mobileClientNetworkScan.addMobileClientNetworkScanTab = function(tabId) {
+		// Detach from maintabsExtension.vm
+		var mobileClientNetworkScanTab = $("#tabs-mobileClientNetworkScan").detach();
+		$("#mainTabs").append(mobileClientNetworkScanTab);
+
+
+		if (mobileClientNetworkScanTabIndex < 0) {
+			motive.csc.mainTabs.tabs("add", "#tabs-mobileClientNetworkScan", tabLabel);
+				$("#tabs-" + tabId).css("padding", 0);
+
+				var ntabs = motive.csc.mainTabs.tabs("length");
+				$("ul#mainTabsRow a[href='#tabs-mobileClientNetworkScan']").attr("id", "mobileClientNetworkScanTab_tab");
+
+				motive.csc.mobileClientNetworkScan.loadMobileClientNetworkScanPage();
+
+				// Setup, resize
+				motive.csc.mobileClientNetworkScan.resize();
+
+			}
+		else {
+			// Auto-select the tab.
+			motive.csc.mainTabs.tabs("select", mobileClientNetworkScanTabIndex);
+		}
+		motive.csc.mainTabs.tabs("select", 0);
+	};
+
+	// ============================================================================================
+	// Refresh Mobile Client Network Scan Tab
+	// ============================================================================================
+
+	motive.csc.mobileClientNetworkScan.refreshMobileClientNetworkScanTab = function() {
+		motive.csc.mobileClientNetworkScan.checkMobileClientNetworkScanExists();
+		if (mobileClientNetworkScanExists == true) {
+			$("#mobileClientNetworkScanData").hide();
+			motive.csc.mobileClientNetworkScan.loadMobileClientNetworkScanPage();
+		}
+	};
+
+	$(document).ready(function(){
+		$("#reloadScan").hide();
+		motive.csc.mobileClientNetworkScan.checkMobileClientNetworkScanExists();
+		if (mobileClientNetworkScanExists == false) {
+			motive.csc.mobileClientNetworkScan.addMobileClientNetworkScanTab(tabId);
+		}
+		$("#reloadScan").show();
+	});
+
+</script>
